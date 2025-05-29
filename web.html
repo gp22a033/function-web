@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>関数アニメーション</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+    }
+    canvas {
+      border: 1px solid #999;
+      margin-top: 20px;
+    }
+    select, input, button {
+      margin: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>関数による入力→出力アニメーション</h1>
+
+  <label for="func">関数を選択:</label>
+  <select id="func">
+    <option value="x*x">x²</option>
+    <option value="x+1">x+1</option>
+    <option value="Math.sin(x)">sin(x)</option>
+  </select>
+
+  <label for="inputVal">入力値:</label>
+  <input type="number" id="inputVal" value="2" />
+
+  <button onclick="startAnimation()">アニメーション開始</button>
+
+  <canvas id="canvas" width="800" height="400"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawStatic() {
+      ctx.fillStyle = "white";
+      ctx.fillRect(300, 125, 150, 150);
+      ctx.strokeRect(300, 125, 150, 150);
+      ctx.fillStyle = "black";
+      ctx.font = "20px sans-serif";
+      ctx.fillText("関数", 345, 200);
+    }
+
+    // 入力円の静止表示
+    function drawInputCircle() {
+      clearCanvas();
+      drawStatic();
+      ctx.globalAlpha = 1.0;
+      ctx.beginPath();
+      ctx.arc(100, 200, 40, 0, 2 * Math.PI);
+      ctx.fillStyle = "#8BE3E0";
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "black";
+      ctx.font = "16px sans-serif";
+      ctx.textAlign = "center";
+      const inputVal = parseFloat(document.getElementById("inputVal").value);
+      ctx.fillText(inputVal, 100, 205);
+      ctx.globalAlpha = 1.0;
+    }
+
+    // 入力値や関数選択時にも円を再描画
+    document.getElementById("inputVal").addEventListener("input", drawInputCircle);
+    document.getElementById("func").addEventListener("change", drawInputCircle);
+
+    // 初期表示
+    drawInputCircle();
+
+    function startAnimation() {
+      const funcStr = document.getElementById("func").value;
+      const inputVal = parseFloat(document.getElementById("inputVal").value);
+      const func = new Function("x", "return " + funcStr);
+      const outputVal = func(inputVal);
+
+      let inputX = 100;
+      let inputY = 200;
+      const midX = 325; // 関数入り口
+      const funcCenterX = 375;
+      const outputX = 650;
+      let inputAlpha = 1.0;
+      let inputRadius = 30;
+      let phase = "moveToFunc";
+
+      let outputAlpha = 0;
+      let outputRadius = 5;
+
+      function animate() {
+        clearCanvas();
+        drawStatic();
+
+        if (phase === "moveToFunc") {
+          let distance = midX - inputX;
+          inputAlpha = Math.max(0, distance / 100); // 消える距離
+          inputRadius = 40 * inputAlpha; // ← ここが円の大きさ
+
+          ctx.globalAlpha = inputAlpha;
+          ctx.beginPath();
+          ctx.arc(inputX, inputY, inputRadius, 0, 2 * Math.PI);
+          ctx.fillStyle = "#8BE3E0";
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "black";
+          ctx.font = "16px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(inputVal, inputX, inputY + 5);
+          ctx.globalAlpha = 1.0;
+
+          if (inputX < midX) {
+            inputX += 3;
+            requestAnimationFrame(animate);
+          } else {
+            phase = "pause";
+            setTimeout(() => {
+              phase = "moveToOutput";
+              inputX = funcCenterX; // 出力位置初期化
+              requestAnimationFrame(animate);
+            }, 500);
+          }
+
+        } else if (phase === "moveToOutput") {
+          ctx.globalAlpha = outputAlpha;
+          ctx.beginPath();
+          ctx.arc(inputX, inputY, outputRadius, 0, 2 * Math.PI); // ← ここで半径を使う
+          ctx.fillStyle = "#F88";
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "black";
+          ctx.font = "16px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(outputVal.toFixed(2), inputX, inputY + 5);
+          ctx.globalAlpha = 1.0;
+
+          if (outputAlpha < 1) outputAlpha += 0.05;
+          if (outputRadius < 50) outputRadius += 1;// 半径を徐々に大きくする
+
+          if (inputX < outputX) {
+            inputX += 3;
+            requestAnimationFrame(animate);
+          }
+        }
+      }
+
+      animate();
+    }
+  </script>
+</body>
+</html>
